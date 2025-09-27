@@ -1,4 +1,5 @@
 import sqlite3
+import random
 from flask import Flask, render_template, request, redirect, url_for, flash, session, g
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -118,8 +119,139 @@ def dashboard():
         return redirect(url_for("index"))
 
     db = get_db()
-    name = db.execute("SELECT name FROM users WHERE id = ?", (session["user_id"],)).fetchone()[0]
-    return render_template("dashboard.html", app_name=app_name, name=name)
+    user = db.execute("SELECT name, email FROM users WHERE id = ?", (session["user_id"],)).fetchone()
+
+    if user is None:
+        session.pop("user_id", None)
+        flash("Please log in again.")
+        return redirect(url_for("index"))
+
+    display_name = user["name"] or user["email"].split("@")[0]
+    return render_template("dashboard.html", app_name=app_name, name=display_name, email=user["email"])
+
+
+
+
+
+@app.route("/insights")
+
+def insights():
+
+    if "user_id" not in session:
+
+        return redirect(url_for("index"))
+
+
+
+    db = get_db()
+
+    user = db.execute("SELECT name, email FROM users WHERE id = ?", (session["user_id"],)).fetchone()
+
+
+
+    if user is None:
+
+        session.pop("user_id", None)
+
+        flash("Please log in again.")
+
+        return redirect(url_for("index"))
+
+
+
+    display_name = user["name"] or user["email"].split("@")[0]
+
+
+
+    categories = [
+
+        {"name": "Reach", "percentile": random.randint(30, 75)},
+
+        {"name": "Target", "percentile": random.randint(55, 90)},
+
+        {"name": "Safety", "percentile": random.randint(70, 98)},
+
+    ]
+
+
+
+    metrics = [
+
+        {"label": "GPA (Unweighted)", "value": "3.6"},
+
+        {"label": "GPA (Weighted)", "value": "4.1"},
+
+        {"label": "SAT Score", "value": "1450"},
+
+    ]
+
+
+
+    schools = [
+
+        {
+
+            "name": "Northbridge University",
+
+            "logo": "https://via.placeholder.com/96?text=NU",
+
+            "location": "Boston, MA",
+
+            "percentile": f"{random.randint(30, 80)}%",
+
+            "acceptance_rate": "24%",
+
+            "average_sat": "1430",
+
+        },
+
+        {
+
+            "name": "Summit College",
+
+            "logo": "https://via.placeholder.com/96?text=SC",
+
+            "location": "Denver, CO",
+
+            "percentile": f"{random.randint(40, 90)}%",
+
+            "acceptance_rate": "32%",
+
+            "average_sat": "1370",
+
+        },
+
+        {
+
+            "name": "Harbor State",
+
+            "logo": "https://via.placeholder.com/96?text=HS",
+
+            "location": "San Diego, CA",
+
+            "percentile": f"{random.randint(55, 98)}%",
+
+            "acceptance_rate": "48%",
+
+            "average_sat": "1280",
+
+        },
+
+    ]
+
+
+
+    return render_template("insights.html", app_name=app_name, name=display_name, email=user["email"], categories=categories, metrics=metrics, schools=schools)
+
+
+
+
+
+@app.route("/logout")
+def logout():
+    session.pop("user_id", None)
+    flash("You have been logged out.")
+    return redirect(url_for("index"))
 
 if __name__ == "__main__":
     with app.app_context():
