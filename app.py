@@ -90,11 +90,115 @@ def register_step2():
         # clear session temp vars
         session.pop("new_user_email", None)
         session.pop("new_user_password", None)
-
+        
+        if (major == "undecided"):
+            return redirect(url_for("major_quiz"))
+        
         flash("Account created successfully. Please log in.")
         return redirect(url_for("index"))
+    
+    majors = {
+        ("STEM & Data", "Computer Science, Engineering, Math, Physics, Statistics"),
+        ("Arts & Humanities", "English, Journalism, Communications, Philosophy, History"),
+        ("Health & Sciences", "Biology, Chemistry, Nursing, Pre-Med, Environmental Science"),
+        ("Creative & Design", "Art, Music, Graphic Design, Theater, Film, Architecture"),
+        ("Social Sciences & Business", "Psychology, Sociology, Political Science, Education, Business, Economics")
+    }
 
-    return render_template("register_step2.html", app_name=app_name)
+    return render_template("register_step2.html", app_name=app_name, majors=majors)
+
+@app.route("/major_quiz", methods=["GET", "POST"])
+def major_quiz():
+    # question text + options
+    questions = {
+        1: {"text": "What subjects or activities do you genuinely enjoy?",
+            "options": {"a": "Math, logic, problem-solving",
+                        "b": "Writing, reading, storytelling",
+                        "c": "Science and experiments",
+                        "d": "Art, music, design",
+                        "e": "Helping people, teaching, volunteering"}},
+        2: {"text": "Which high school classes did you look forward to most?",
+            "options": {"a": "Math or Computer Science",
+                        "b": "English or History",
+                        "c": "Biology or Chemistry",
+                        "d": "Art or Theater",
+                        "e": "Business or Economics"}},
+        3: {"text" : "What are your strongest skills?",
+            "options" : {"a": "Logical reasoning, analysis",
+                         "b": "Writing, communication",
+                         "c": "Scientific observation, lab work",
+                         "d": "Creativity, design",
+                         "e": "Empathy, leadership, helping others"}},
+        4: {"text" : "What type of work do you prefer?",
+            "options" : {"a": "Numbers and Data",
+                         "b": "Words and Ideas",
+                         "c": "Experiments and Fieldwork",
+                         "d": "Creative Projects",
+                         "e": "Working With People"}},
+        5: {"text" : "Do you prefer structured or open-ended tasks?",
+            "options" : {"a": "Structured tasks with rules",
+                         "b": "Open-ended, creative projects",
+                         "c": "A balance of both"}},
+        6: {"text" : "Would you rather?",
+            "options" : {"a": "Work independently",
+                         "b": "Collaborate in teams",
+                         "c": "Lead others"}},
+        7: {"text" : "What kind of impact do you want your work to have?",
+            "options" : {"a": "Solve technical or scientific problems",
+                         "b": "Inspire or inform others",
+                         "c": "Heal, teach, or support people directly",
+                         "d": "Shape businesses, organizations, or governments"}},  
+        8: {"text" : "What matters more to you in a career?",
+            "options" : {"a": "High salary and stability",
+                         "b": "Passion and fulfillment",
+                         "c": "A mix of both"}},
+        9: {"text" : "Which careers/majors spark curiosity for you?",
+            "options" : {"a": "STEM (science, tech, engineering, math)",
+                         "b": "Arts & Humanities",
+                         "c": "Social Sciences (psych, sociology, political science)",
+                         "d": "Health & Medicine",
+                         "e": "Business & Economics"}},
+        10: {"text" : "What lifestyle do you see yourself having?",
+            "options" : {"a": "Fast-paced corporate or tech career",
+                         "b": "Flexible creative/freelance lifestyle",
+                         "c": "Steady professional (doctor, engineer, teacher)",
+                         "d": "Entrepreneurial, leadership-driven",
+                         "e": "Research-focused or academic"}}                                                                                                                                              
+    }
+
+    # Category mapping
+    categories = {
+        "a": {"name": "STEM & Data",
+              "majors": ["Computer Science", "Engineering", "Math", "Physics", "Statistics"]},
+        "b": {"name": "Arts & Humanities",
+              "majors": ["English", "Journalism", "Communications", "Philosophy", "History"]},
+        "c": {"name": "Health & Sciences",
+              "majors": ["Biology", "Chemistry", "Nursing", "Pre-Med", "Environmental Science"]},
+        "d": {"name": "Creative & Design",
+              "majors": ["Art", "Music", "Graphic Design", "Theater", "Film", "Architecture"]},
+        "e": {"name": "Social Sciences & Business",
+              "majors": ["Psychology", "Sociology", "Political Science", "Education", "Business", "Economics"]},
+    }
+
+    if request.method == "POST":
+        counts = {"a": 0, "b": 0, "c": 0, "d": 0, "e": 0}
+
+        # Tally answers
+        for i in questions.keys():
+            ans = request.form.get(f"q{i}")
+            if ans in counts:
+                counts[ans] += 1
+
+        # Find which letter is most common
+        top_letter = max(counts, key=counts.get)
+        recommended_category = categories[top_letter]
+
+        return render_template("quiz_results.html",
+                               category=recommended_category["name"],
+                               majors=recommended_category["majors"],
+                               counts=counts)
+
+    return render_template("quiz.html", questions=questions)
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -118,7 +222,7 @@ def dashboard():
         return redirect(url_for("index"))
 
     db = get_db()
-    name = db.execute("SELECT name FROM users WHERE id = ?", (session["user_id"],)).fetchone()[0]
+    name = db.execute("SELECT name FROM users WHERE id = ?", (session["user_id"],)).fetchone()["name"]
     return render_template("dashboard.html", app_name=app_name, name=name)
 
 if __name__ == "__main__":
