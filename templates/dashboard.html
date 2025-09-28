@@ -9,9 +9,12 @@
   <div class="dashboard-shell">
     <aside class="sidebar" id="sidebar" aria-hidden="true">
       <div class="sidebar-header">
-        <span class="sidebar-app">{{ app_name }}</span>
-        <button class="icon-button sidebar-close" id="sidebarClose" aria-label="Close menu">X</button>
-      </div>
+  <img class="sidebar-logo"
+       src="{{ url_for('static', filename='White_PathWise_Logo.png') }}"
+       alt="PathWise logo">
+  <button class="icon-button sidebar-close" id="sidebarClose" aria-label="Close menu">X</button>
+</div>
+
       <nav class="sidebar-nav" aria-label="Primary">
         <a href="{{ url_for('dashboard') }}" class="sidebar-link active">Dashboard</a>
         <a href="#" class="sidebar-link">Pathways</a>
@@ -79,31 +82,21 @@
           <div class="school-header">
             <h2>Schools List</h2>
           </div>
-          <div class="school-group">
-            <h3>Reach</h3>
-            <ul>
-              <li>Placeholder University A</li>
-              <li>Prestige College B</li>
-              <li>Elite Institute C</li>
-            </ul>
+          <h3>reach</h3>
+            {% for category in categories %}
+          <article class="insight-category">
+            <div class="insight-category-header">
+              <h2>{{ category.name }}</h2>
+              <span class="insight-percent-label">{{ category.percentile }}%</span>
+            </div>
+            <div class="percentile-bar--sm" role="img" aria-label="{{ category.name }} percentile {{ category.percentile }}%">
+              <div class="percentile-bar--sm-fill" style="width: {{ category.percentile }}%"></div>
+            </div>
+          </article>
+          {% endfor %}
           </div>
-          <div class="school-group">
-            <h3>Target</h3>
-            <ul>
-              <li>State University D</li>
-              <li>Metropolitan College E</li>
-              <li>City Honors F</li>
-            </ul>
-          </div>
-          <div class="school-group">
-            <h3>Safety</h3>
-            <ul>
-              <li>Community University G</li>
-              <li>Regional College H</li>
-              <li>Neighborhood Tech I</li>
-            </ul>
-          </div>
-        </div>
+          
+          
       </section>
     </main>
   </div>

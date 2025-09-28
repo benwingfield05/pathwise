@@ -2,6 +2,11 @@ import os, time, random, requests, sqlite3
 from flask import Flask, render_template, request, redirect, url_for, flash, session, g
 from werkzeug.security import generate_password_hash, check_password_hash
 import math
+from google import genai
+import json
+
+# Get key from environmental GEMINI_API_KEY
+client = genai.Client()
 
 # Optional Databricks
 USE_DATABRICKS = os.getenv("USE_DATABRICKS", "false").lower() == "true"
@@ -457,17 +462,49 @@ def major_quiz():
     }
 
     if request.method == "POST":
-        counts = {"a": 0, "b": 0, "c": 0, "d": 0, "e": 0}
-        for i in questions.keys():
-            ans = request.form.get(f"q{i}")
-            if ans in counts:
-                counts[ans] += 1
-        top_letter = max(counts, key=counts.get)
-        recommended_category = categories[top_letter]
-        return render_template("quiz_results.html",
-                               category=recommended_category["name"],
-                               majors=recommended_category["majors"],
-                               counts=counts)
+        responses = {}
+        for qid, question in questions.items():
+            chosen = request.form.get(str(qid))  # 'a', 'b', 'c'...
+            if chosen:
+                responses[qid] = question["options"][chosen]  # saves the text (e.g., "Math, logic, problem-solving")
+
+        prompt = f"""
+        A student answered a college major quiz. Here are their answers:
+        {json.dumps(responses, indent=2)}
+
+        Categories and associated majors:
+        {json.dumps(categories, indent=2)}
+
+        Task:
+        1. Identify which category best matches the student's responses.
+        2. Recommend 2-3 majors from that category.
+        3. Explain why these majors fit their answers.
+        4. Provide a short paragraph of encouragement for the student.
+
+        Return JSON with:
+        {{
+        "category": str,
+        "recommended_majors": [str],
+        "reasoning": str,
+        "encouragement": str
+        }}
+        """
+
+        # Send to Gemini
+        result = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
+        )
+
+        # Parse Gemini’s JSON output
+        try:
+            # Cut off first seven characters for parsing (```json) and last three characters (```)
+            parsed = json.loads(result.text[7:(len(result.text) - 3)])
+        except:
+            parsed = {"error": "AI response could not be parsed", "raw": result.text}
+
+        return render_template("quiz_results.html", results=parsed)
+
     return render_template("quiz.html", questions=questions)
 
 # --- Insights (pull from DB; no live API)

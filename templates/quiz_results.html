@@ -7,14 +7,38 @@
 </head>
 <body>
   <div class="container">
-    <h1>Your Recommended Category:</h1>
-    <h2>{{ category }}</h2>
-    <p>Suggested Majors:</p>
-    <ul>
-      {% for major in majors %}
-        <li>{{ major }}</li>
-      {% endfor %}
-    </ul>
+<div class="results-container">
+    <h2>Your Recommended Path</h2>
+
+    {% if results.error %}
+        <p>Error: {{ results.error }}</p>
+        <pre>{{ results.raw }}</pre>
+    {% else %}
+        <div class="results-section">
+        <h3>Category</h3>
+        <p>{{ results.category }}</p>
+        </div>
+
+        <div class="results-section">
+        <h3>Recommended Majors</h3>
+        <ul>
+            {% for m in results.recommended_majors %}
+            <li>{{ m }}</li>
+            {% endfor %}
+        </ul>
+        </div>
+
+        <div class="results-section">
+        <h3>Why These Majors?</h3>
+        <p>{{ results.reasoning }}</p>
+        </div>
+
+        <div class="results-section">
+        <h3>Encouragement</h3>
+        <p>{{ results.encouragement }}</p>
+        </div>
+    {% endif %}
+    </div>
     <a href="{{ url_for('dashboard') }}">Continue to Dashboard</a>
   </div>
 </body>

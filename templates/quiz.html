@@ -9,18 +9,14 @@
   <div class="container">
     <h1>Major Match Quiz</h1>
     <form method="POST">
-      {% for i, q in questions.items() %}
-      <div class="question">
-        <p><strong>{{ i }}. {{ q['text'] }}</strong></p>
-        <div class="options">
-          {% for opt, val in q['options'].items() %}
+      {% for qid, q in questions.items() %}
+        <p><strong>{{ q.text }}</strong></p>
+        {% for key, option in q.options.items() %}
           <label>
-            <input type="radio" name="q{{ i }}" value="{{ val }}" required> {{ opt }})
-            {{ q['options'][opt] }}
-          </label>
-          {% endfor %}
-        </div>
-      </div>
+            <input type="radio" name="{{ qid }}" value="{{ key }}"> {{ option }}
+          </label><br>
+        {% endfor %}
+        <hr>
       {% endfor %}
       <button type="submit">See My Recommendation</button>
     </form>
