@@ -6,7 +6,7 @@ from google import genai
 import json
 
 # Get key from environmental GEMINI_API_KEY
-client = genai.Client()
+client = genai.Client(api_key="AIzaSyBaciCvno_5_7WwMlqQBhT9cwTNgBt1T1I")
 
 # Optional Databricks
 USE_DATABRICKS = os.getenv("USE_DATABRICKS", "false").lower() == "true"
@@ -606,3 +606,4 @@ if __name__ == "__main__":
         if not exec_query(f"SELECT 1 FROM {TB_SCHOOLS} LIMIT 1"):
              seed_top_schools(limit=1000)
     app.run(debug=True)
+
