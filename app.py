@@ -328,7 +328,7 @@ def register_step2():
         name   = request.form.get("name")
         school = request.form.get("school")
         year   = request.form.get("year")
-        major  = request.form.get("major")
+        major  = request.form["major"]
         gpa    = request.form.get("gpa")
         gpa    = float(gpa) if gpa not in (None, "",) else None
 
@@ -348,7 +348,7 @@ def register_step2():
         session.pop("new_user_email", None)
         session.pop("new_user_password", None)
 
-        if major and major.lower() in ("undecided", "i don't know yet.", "i dont know yet"):
+        if major == "undecided":
             return redirect(url_for("major_quiz"))
 
         flash("Account created successfully. Please log in.")
@@ -385,9 +385,62 @@ def dashboard():
     if "user_id" not in session:
         return redirect(url_for("index"))
 
-    row = exec_query(f"SELECT name FROM {TB_USERS} WHERE id = :uid", {"uid": session["user_id"]}, one=True)
+    row = exec_query(f"SELECT * FROM {TB_USERS} WHERE id = :uid", {"uid": session["user_id"]}, one=True)
     name = row["name"] if row else "Student"
-    return render_template("dashboard.html", name=name)
+    user_gpa = row.get("gpa")
+    if user_gpa is None:
+        flash("Add a GPA to see insights.")
+        return redirect(url_for("dashboard"))
+
+    # Pull candidate schools
+    rows = exec_query(f"""
+        SELECT id, name, state, city, sat_avg, act_avg, admission_rate, gpa_est
+        FROM {TB_SCHOOLS}
+        WHERE sat_avg IS NOT NULL
+        LIMIT 500
+    """)
+
+    buckets = {"Reach": [], "Target": [], "Safety": []}
+    for s in rows:
+        cat = categorize_school(user_gpa, s.get("gpa_est"))
+        pct = percentile_vs_school(user_gpa, s)  # float or None
+
+        # Map to the exact keys your template uses
+        card = {
+            "name": s.get("name"),
+            "location": f"{(s.get('city') or '')}{', ' if s.get('city') and s.get('state') else ''}{(s.get('state') or '')}",
+            "percentile": (f"{pct:.1f}%" if isinstance(pct, (int, float)) else "N/A"),
+            "acceptance_rate": (f"{round(float(s['admission_rate']) * 100, 1)}%" 
+                                if s.get("admission_rate") is not None else "N/A"),
+            "average_sat": (int(s["sat_avg"]) if s.get("sat_avg") is not None else "N/A"),
+            "logo": url_for("static", filename="school_placeholder.png"),
+        }
+        if cat in buckets:
+            buckets[cat].append(card)
+
+    # Sample 3/4/5 as requested
+    random.seed(session["user_id"])
+    def pick(lst, n): 
+        return random.sample(lst, min(n, len(lst))) if lst else []
+
+    schools = pick(buckets["Reach"], 3) + pick(buckets["Target"], 4) + pick(buckets["Safety"], 5)
+
+    # Category bars (numeric percent for width)
+    def avg_pct(lst):
+        vals = []
+        for it in lst:
+            try:
+                vals.append(float(str(it["percentile"]).replace("%", "")))
+            except:
+                pass
+        return round(sum(vals) / len(vals), 1) if vals else 0.0
+
+    categories = [
+        {"name": "Reach",  "percentile": avg_pct(buckets["Reach"])},
+        {"name": "Target", "percentile": avg_pct(buckets["Target"])},
+        {"name": "Safety", "percentile": avg_pct(buckets["Safety"])},
+    ]
+    return render_template("dashboard.html", name=name, categories=categories)
 
 # --- Major quiz (unchanged render/logic)
 @app.route("/major_quiz", methods=["GET", "POST"])
@@ -606,4 +659,3 @@ if __name__ == "__main__":
         if not exec_query(f"SELECT 1 FROM {TB_SCHOOLS} LIMIT 1"):
              seed_top_schools(limit=1000)
     app.run(debug=True)
-
