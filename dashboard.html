@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ app_name }} - Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="dashboard-body">
+  <div class="dashboard-shell">
+    <aside class="sidebar" id="sidebar" aria-hidden="true">
+      <div class="sidebar-header">
+  <img class="sidebar-logo"
+       src="{{ url_for('static', filename='White_PathWise_Logo.png') }}"
+       alt="PathWise logo">
+  <button class="icon-button sidebar-close" id="sidebarClose" aria-label="Close menu">X</button>
+</div>
+
+      <nav class="sidebar-nav" aria-label="Primary">
+        <a href="{{ url_for('dashboard') }}" class="sidebar-link active">Dashboard</a>
+        <a href="#" class="sidebar-link">Pathways</a>
+        <a href="{{ url_for('insights', user_id=session['user_id']) }}" class="sidebar-link">Insights</a>
+        <a href="#" class="sidebar-link">Admissions</a>
+        <a href="#" class="sidebar-link">Essays Workshop</a>
+        <a href="#" class="sidebar-link">Settings</a>
+      </nav>
+    </aside>
+
+    
+
+    <main class="dashboard-main">
+      <header class="topbar">
+        <button class="icon-button menu-toggle" id="menuToggle" aria-label="Open menu">
+          <span class="menu-icon"></span>
+        </button>
+        <h1 class="welcome-message">Welcome, {{ name or 'User' }}</h1>
+        <div class="account" id="account">
+          <button class="avatar-button" id="avatarButton" aria-haspopup="true" aria-expanded="false">
+            <span class="avatar-initial">{{ (name or 'User')[:1]|upper }}</span>
+          </button>
+          <div class="account-dropdown" id="accountDropdown" role="menu">
+            <div class="account-summary">
+              <p class="account-name">{{ name }}</p>
+              {% if email %}
+              <p class="account-email">{{ email }}</p>
+              {% endif %}
+            </div>
+            <ul class="account-actions">
+              <li><a href="#">Account Details</a></li>
+              <li><a href="#">Profile Settings</a></li>
+              <li><a href="{{ url_for('logout') }}">Log Out</a></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+
+
+      <div class="dashboard-columns">
+        <section class="dashboard-content cards-section" aria-label="Key updates">
+          <div class="cards-grid">
+            <article class="card">
+              <h2>Pathways</h2>
+              <p>Keep tabs on upcoming deadlines and required documents.</p>
+            </article>
+            <article class="card">
+            <h2><a href="{{ url_for('insights', user_id=session['user_id']) }}">Insights</a></h2>
+              <p>Draft responses, collect feedback, and track revisions in one place.</p>
+            </article>
+            <article class="card">
+              <h2>Admissions</h2>
+              <p>Review recommended awards and monitor submission status.</p>
+            </article>
+            <article class="card">
+              <h2>Essays Workshop</h2>
+              <p>Stay aware of workshops, campus tours, and counselor meetings.</p>
+            </article>
+          </div>
+        </section>
+      </div>
+
+      <section class="schools-section" aria-label="School categories">
+        <div class="schools-panel">
+          <div class="school-header">
+            <h2>Schools List</h2>
+          </div>
+          <h3>reach</h3>
+            {% for category in categories %}
+          <article class="insight-category">
+            <div class="insight-category-header">
+              <h2>{{ category.name }}</h2>
+              <span class="insight-percent-label">{{ category.percentile }}%</span>
+            </div>
+            <div class="percentile-bar--sm" role="img" aria-label="{{ category.name }} percentile {{ category.percentile }}%">
+              <div class="percentile-bar--sm-fill" style="width: {{ category.percentile }}%"></div>
+            </div>
+          </article>
+          {% endfor %}
+          </div>
+          
+          
+      </section>
+    </main>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
+
+  <script>
+    (function () {
+      var shell = document.querySelector('.dashboard-shell');
+      var sidebar = document.getElementById('sidebar');
+      var overlay = document.getElementById('sidebarOverlay');
+      var menuToggle = document.getElementById('menuToggle');
+      var sidebarClose = document.getElementById('sidebarClose');
+      var avatarButton = document.getElementById('avatarButton');
+      var accountDropdown = document.getElementById('accountDropdown');
+      var account = document.getElementById('account');
+
+      function openSidebar() {
+        shell.classList.add('sidebar-open');
+        sidebar.classList.add('open');
+        overlay.classList.add('visible');
+        sidebar.setAttribute('aria-hidden', 'false');
+        overlay.setAttribute('aria-hidden', 'false');
+      }
+
+      function closeSidebar() {
+        shell.classList.remove('sidebar-open');
+        sidebar.classList.remove('open');
+        overlay.classList.remove('visible');
+        sidebar.setAttribute('aria-hidden', 'true');
+        overlay.setAttribute('aria-hidden', 'true');
+      }
+
+      function closeAccountMenu() {
+        accountDropdown.classList.remove('open');
+        avatarButton.setAttribute('aria-expanded', 'false');
+      }
+
+      menuToggle.addEventListener('click', function (event) {
+        event.stopPropagation();
+        if (sidebar.classList.contains('open')) {
+          closeSidebar();
+        } else {
+          openSidebar();
+        }
+      });
+
+      sidebarClose.addEventListener('click', function () {
+        closeSidebar();
+      });
+
+      overlay.addEventListener('click', function () {
+        closeSidebar();
+      });
+
+      avatarButton.addEventListener('click', function (event) {
+        event.stopPropagation();
+        var isOpen = accountDropdown.classList.toggle('open');
+        avatarButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      });
+
+      document.addEventListener('click', function (event) {
+        if (accountDropdown.classList.contains('open') && !account.contains(event.target)) {
+          closeAccountMenu();
+        }
+      });
+
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+          if (sidebar.classList.contains('open')) {
+            closeSidebar();
+          }
+          if (accountDropdown.classList.contains('open')) {
+            closeAccountMenu();
+          }
+        }
+      });
+
+      window.addEventListener('resize', function () {
+        if (window.innerWidth >= 1024) {
+          overlay.classList.remove('visible');
+          overlay.setAttribute('aria-hidden', 'true');
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
