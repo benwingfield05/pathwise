@@ -473,7 +473,8 @@ def major_quiz():
 # --- Insights (pull from DB; no live API)
 @app.route("/insights/<int:user_id>")
 def insights(user_id):
-    user = exec_query(f"SELECT * FROM {TB_USERS} WHERE id = :uid", {"uid": user_id}, one=True)
+    user = exec_query(f"SELECT id, email, name, school, year, major, gpa FROM {TB_USERS} WHERE id = :uid",
+                      {"uid": user_id}, one=True)
     if not user:
         flash("User not found.")
         return redirect(url_for("dashboard"))
@@ -483,42 +484,88 @@ def insights(user_id):
         flash("Add a GPA to see insights.")
         return redirect(url_for("dashboard"))
 
-    schools = exec_query(f"SELECT * FROM {TB_SCHOOLS} WHERE sat_avg IS NOT NULL LIMIT 500")
-    categorized = {"Reach": [], "Target": [], "Safety": []}
+    # Pull candidate schools
+    rows = exec_query(f"""
+        SELECT id, name, state, city, sat_avg, act_avg, admission_rate, gpa_est
+        FROM {TB_SCHOOLS}
+        WHERE sat_avg IS NOT NULL
+        LIMIT 500
+    """)
 
-    for s in schools:
+    buckets = {"Reach": [], "Target": [], "Safety": []}
+    for s in rows:
         cat = categorize_school(user_gpa, s.get("gpa_est"))
-        sat = s.get("sat_avg")
-        percentile = None
-        if sat:
-            # simple ratio to ~percentile relative to median-ish SAT
-            percentile = percentile_vs_school(user["gpa"], s)
-        item = {
-            "name": s.get("name"),
-            "state": s.get("state"),
-            "city": s.get("city"),
-            "adm_rate": round(s.get("admission_rate", 0) * 100, 2) if s.get("admission_rate") is not None else None,
-            "category": cat,
-            "sat_avg": sat,
-            "gpa_est": s.get("gpa_est"),
-            "percentile": percentile
-        }
-        if cat in categorized:
-            categorized[cat].append(item)
+        pct = percentile_vs_school(user_gpa, s)  # float or None
 
+        # Map to the exact keys your template uses
+        card = {
+            "name": s.get("name"),
+            "location": f"{(s.get('city') or '')}{', ' if s.get('city') and s.get('state') else ''}{(s.get('state') or '')}",
+            "percentile": (f"{pct:.1f}%" if isinstance(pct, (int, float)) else "N/A"),
+            "acceptance_rate": (f"{round(float(s['admission_rate']) * 100, 1)}%" 
+                                if s.get("admission_rate") is not None else "N/A"),
+            "average_sat": (int(s["sat_avg"]) if s.get("sat_avg") is not None else "N/A"),
+            "logo": url_for("static", filename="school_placeholder.png"),
+        }
+        if cat in buckets:
+            buckets[cat].append(card)
+
+    # Sample 3/4/5 as requested
     random.seed(user_id)
     def pick(lst, n): 
-        n = min(n, len(lst))
-        return random.sample(lst, n) if n > 0 else []
+        return random.sample(lst, min(n, len(lst))) if lst else []
 
-    final_list = pick(categorized["Reach"], 3) + pick(categorized["Target"], 4) + pick(categorized["Safety"], 5)
-    return render_template("insights.html", user=user, schools=final_list)
+    schools = pick(buckets["Reach"], 3) + pick(buckets["Target"], 4) + pick(buckets["Safety"], 5)
+
+    # Category bars (numeric percent for width)
+    def avg_pct(lst):
+        vals = []
+        for it in lst:
+            try:
+                vals.append(float(str(it["percentile"]).replace("%", "")))
+            except:
+                pass
+        return round(sum(vals) / len(vals), 1) if vals else 0.0
+
+    categories = [
+        {"name": "Reach",  "percentile": avg_pct(buckets["Reach"])},
+        {"name": "Target", "percentile": avg_pct(buckets["Target"])},
+        {"name": "Safety", "percentile": avg_pct(buckets["Safety"])},
+    ]
+
+    # Academic snapshot
+    metrics = [
+        {"label": "GPA",    "value": user_gpa},
+        {"label": "Year",   "value": user.get("year")   or "—"},
+        {"label": "School", "value": user.get("school") or "—"},
+        {"label": "Major",  "value": user.get("major")  or "—"},
+    ]
+
+    return render_template(
+        "insights.html",
+        app_name=app_name,
+        user=user,
+        categories=categories,
+        metrics=metrics,
+        schools=schools,
+        reach=pick(buckets["Reach"], 3),
+        target=pick(buckets["Target"], 4),
+        safety=pick(buckets["Safety"], 5)
+    )
+
+
+@app.route("/logout")
+def logout():
+    # Clear all session data
+    session.clear()
+    flash("You have been logged out.")
+    return redirect(url_for("index"))
 
 # ========== MAIN ==========
 if __name__ == "__main__":
     with app.app_context():
         create_tables()
         # Seed once if empty (optional)
-        # if not exec_query(f"SELECT 1 FROM {TB_SCHOOLS} LIMIT 1"):
-        #     seed_top_schools(limit=500)
+        if not exec_query(f"SELECT 1 FROM {TB_SCHOOLS} LIMIT 1"):
+             seed_top_schools(limit=1000)
     app.run(debug=True)

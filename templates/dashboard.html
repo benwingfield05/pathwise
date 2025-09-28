@@ -15,7 +15,7 @@
       <nav class="sidebar-nav" aria-label="Primary">
         <a href="{{ url_for('dashboard') }}" class="sidebar-link active">Dashboard</a>
         <a href="#" class="sidebar-link">Pathways</a>
-        <a href="{{ url_for('insights') }}" class="sidebar-link">Insights</a>
+        <a href="{{ url_for('insights', user_id=session['user_id']) }}" class="sidebar-link">Insights</a>
         <a href="#" class="sidebar-link">Admissions</a>
         <a href="#" class="sidebar-link">Essays Workshop</a>
         <a href="#" class="sidebar-link">Settings</a>
@@ -59,7 +59,7 @@
               <p>Keep tabs on upcoming deadlines and required documents.</p>
             </article>
             <article class="card">
-            <h2><a href="{{ url_for('insights') }}">Insights</a></h2>
+            <h2><a href="{{ url_for('insights', user_id=session['user_id']) }}">Insights</a></h2>
               <p>Draft responses, collect feedback, and track revisions in one place.</p>
             </article>
             <article class="card">

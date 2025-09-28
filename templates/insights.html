@@ -17,7 +17,7 @@
         <a href="#" class="sidebar-link">Admissions</a>
         <a href="#" class="sidebar-link">Essays</a>
         <a href="#" class="sidebar-link">Scholarships</a>
-        <a href="{{ url_for('insights') }}" class="sidebar-link active">Insights</a>
+        <a href="{{ url_for('insights', user_id=session['user_id']) }}" class="sidebar-link active">Insights</a>
         <a href="#" class="sidebar-link">Settings</a>
       </nav>
     </aside>
@@ -30,13 +30,13 @@
         <h1 class="welcome-message">Insights Overview</h1>
         <div class="account" id="account">
           <button class="avatar-button" id="avatarButton" aria-haspopup="true" aria-expanded="false">
-            <span class="avatar-initial">{{ (name or 'User')[:1]|upper }}</span>
+            <span class="avatar-initial">{{ (user.name or 'User')[:1]|upper }}</span>
           </button>
           <div class="account-dropdown" id="accountDropdown" role="menu">
             <div class="account-summary">
-              <p class="account-name">{{ name }}</p>
-              {% if email %}
-              <p class="account-email">{{ email }}</p>
+              <p class="account-name">{{ user.name }}</p>
+              {% if user.email %}
+              <p class="account-email">{{ user.email }}</p>
               {% endif %}
             </div>
             <ul class="account-actions">
@@ -81,18 +81,56 @@
             <p>Compare quick stats before shortlisting your next applications.</p>
           </div>
           <div class="insight-school-grid">
-            {% for school in schools %}
-            <article class="insight-school-card">
-              <h3>{{ school.name }}</h3>
-              <img src="{{ school.logo }}" alt="{{ school.name }} logo" class="insight-school-logo">
-              <ul class="insight-school-meta">
-                <li><span class="meta-label">Location</span><span class="meta-value">{{ school.location }}</span></li>
-                <li><span class="meta-label">Admission Percentile</span><span class="meta-value">{{ school.percentile }}</span></li>
-                <li><span class="meta-label">Acceptance Rate</span><span class="meta-value">{{ school.acceptance_rate }}</span></li>
-                <li><span class="meta-label">Average SAT</span><span class="meta-value">{{ school.average_sat }}</span></li>
-              </ul>
-            </article>
-            {% endfor %}
+            <!-- Reach Schools -->
+            <section class="category-section">
+                <h2>🎯 Reach Schools</h2>
+                <div class="school-list">
+                    {%  for school in reach %}
+                    <div class="insight-school-card">
+                        <h3>{{ school.name }}</h3>
+                        <span class="college-initial">{{ (school.name or 'School')[:1]|upper }}</span>
+                        <div class="school-meta">{{ school.location }}</div>
+                        <div class="school-meta">SAT Avg: {{ school.average_sat or "N/A" }}</div>
+                        <div class="school-meta">Admission Rate: {{ school.acceptance_rate or "N/A" }}</div>
+                        <div class="school-meta">Percentile: {{ school.percentile or "N/A" }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Target Schools -->
+            <section class="category-section">
+                <h2>✅ Target Schools</h2>
+                <div class="school-list">
+                    {%  for school in target %}
+                    <div class="insight-school-card">
+                        <h3>{{ school.name }}</h3>
+                        <span class="college-initial">{{ (school.name or 'School')[:1]|upper }}</span>
+                        <div class="school-meta">{{ school.location }}</div>
+                        <div class="school-meta">SAT Avg: {{ school.average_sat or "N/A" }}</div>
+                        <div class="school-meta">Admission Rate: {{ school.acceptance_rate or "N/A" }}</div>
+                        <div class="school-meta">Percentile: {{ school.percentile or "N/A" }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Safety Schools -->
+            <section class="category-section">
+                <h2>🛡️ Safety Schools</h2>
+                <div class="school-list">
+                    {% for school in safety %}
+                    <div class="insight-school-card">
+                        <h3>{{ school.name }}</h3>
+                        <span class="college-initial">{{ (school.name or 'School')[:1]|upper }}</span>
+                        <div class="school-meta">{{ school.location }}</div>
+                        <div class="school-meta">SAT Avg: {{ school.average_sat or "N/A" }}</div>
+                        <div class="school-meta">Admission Rate: {{ school.acceptance_rate or "N/A" }}</div>
+                        <div class="school-meta">Percentile: {{ school.percentile or "N/A" }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
           </div>
         </section>
       </div>
